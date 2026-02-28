@@ -106,7 +106,6 @@ export default function Home() {
         fallback={
           <div class='flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-6 px-4'>
             <div class='bg-white rounded-xl border border-slate-200 shadow-sm p-8 w-full max-w-sm flex flex-col gap-6'>
-
               {/* ── Registration ── */}
               <div>
                 <div class='flex items-center justify-between mb-4'>
@@ -144,14 +143,15 @@ export default function Home() {
                     <div class='flex items-center justify-between gap-3'>
                       <div>
                         <p class='text-sm font-medium text-slate-800'>{name()}</p>
-                        <p class='text-xs text-slate-400 font-mono mt-0.5'>
-                          {identity()?.identityHash.slice(0, 16)}…
-                        </p>
+                        <p class='text-xs text-slate-400 font-mono mt-0.5'>{identity()?.identityHash.slice(0, 16)}…</p>
                       </div>
                       <button
                         type='button'
                         class='text-xs text-slate-400 hover:text-slate-600 transition-colors cursor-pointer'
-                        onClick={() => { setRegisteredAs(null); localStorage.removeItem('chat_username'); }}
+                        onClick={() => {
+                          setRegisteredAs(null);
+                          localStorage.removeItem('chat_username');
+                        }}
                       >
                         change
                       </button>
@@ -181,7 +181,6 @@ export default function Home() {
                   </form>
                 </div>
               </Show>
-
             </div>
 
             {/* ── Recent rooms ── */}
@@ -213,12 +212,7 @@ export default function Home() {
         }
       >
         {(info) => (
-          <Chat
-            room={info().room}
-            username={info().username}
-            identity={info().identity}
-            onDisconnect={disconnect}
-          />
+          <Chat room={info().room} username={info().username} identity={info().identity} onDisconnect={disconnect} />
         )}
       </Show>
     </>

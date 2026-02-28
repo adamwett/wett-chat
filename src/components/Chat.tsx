@@ -9,7 +9,9 @@ type DisplayMessage =
   | { type: 'message'; user: string; signature: string; text: string; timestamp: number }
   | { type: 'error'; text: string };
 
-type ServerMessage = DisplayMessage | { type: 'history'; messages: Array<Extract<DisplayMessage, { type: 'message' }>> };
+type ServerMessage =
+  | DisplayMessage
+  | { type: 'history'; messages: Array<Extract<DisplayMessage, { type: 'message' }>> };
 
 type Status = 'connecting' | 'connected' | 'disconnected';
 
@@ -22,7 +24,7 @@ interface Props {
 
 /** Derive a stable hue from the first 3 bytes of the signature hex. */
 function sigColor(sig: string): string {
-  const hue = (parseInt(sig.slice(0, 6), 16) % 360 + 360) % 360;
+  const hue = ((parseInt(sig.slice(0, 6), 16) % 360) + 360) % 360;
   return `hsl(${hue}, 65%, 42%)`;
 }
 
@@ -59,7 +61,7 @@ export default function Chat(props: Props) {
       setStatus('connected');
       // Use the canonical ECDSA public key JWK as the secret so:
       // server signature = SHA-256(secret) = SHA-256(ecdsaPubJwk) = identityHash
-      ws!.send(JSON.stringify({ type: 'join', user: props.username, secret: props.identity.ecdsaPubJwkCanonical }));
+      ws?.send(JSON.stringify({ type: 'join', user: props.username, secret: props.identity.ecdsaPubJwkCanonical }));
     };
 
     ws.onmessage = (e) => {
@@ -133,7 +135,10 @@ export default function Chat(props: Props) {
                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
                 : 'text-slate-500 border-slate-200 hover:bg-slate-50'
             }`}
-            onClick={() => { setDmOpen((v) => !v); dm.setUnread(false); }}
+            onClick={() => {
+              setDmOpen((v) => !v);
+              dm.setUnread(false);
+            }}
           >
             DMs
             <Show when={dm.unread()}>
@@ -204,11 +209,7 @@ export default function Chat(props: Props) {
 
       {/* DM Panel */}
       <Show when={dmOpen()}>
-        <DmPanel
-          dm={dm}
-          openPeer={dmPeer()}
-          onClose={() => setDmOpen(false)}
-        />
+        <DmPanel dm={dm} openPeer={dmPeer()} onClose={() => setDmOpen(false)} />
       </Show>
     </div>
   );

@@ -94,7 +94,7 @@ export default function Mailboxes() {
               <For each={entries()!}>{(entry) => <MailboxCard entry={entry} />}</For>
             </div>
             <p class='text-xs text-slate-400 mt-4 text-right'>
-              {entries()!.length} mailbox{entries()!.length === 1 ? '' : 'es'}
+              {entries()?.length} mailbox{entries()?.length === 1 ? '' : 'es'}
             </p>
           </Show>
 

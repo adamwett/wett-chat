@@ -28,8 +28,8 @@ export interface Identity {
 
 export interface EncryptedDm {
   ciphertext: string; // base64 AES-GCM ciphertext
-  iv: string;         // base64 96-bit IV
-  sig: string;        // base64 ECDSA signature over (from ‖ to ‖ ciphertext ‖ iv)
+  iv: string; // base64 96-bit IV
+  sig: string; // base64 ECDSA signature over (from ‖ to ‖ ciphertext ‖ iv)
 }
 
 // ─── Algorithms ──────────────────────────────────────────────────────────────
@@ -139,13 +139,10 @@ async function deserializeIdentity(s: StoredIdentity): Promise<Identity> {
 
 async function deriveAesKey(myEcdhPriv: CryptoKey, theirEcdhPubJwk: string): Promise<CryptoKey> {
   const theirPub = await crypto.subtle.importKey('jwk', JSON.parse(theirEcdhPubJwk) as JsonWebKey, ECDH_ALG, false, []);
-  return crypto.subtle.deriveKey(
-    { name: 'ECDH', public: theirPub },
-    myEcdhPriv,
-    AES_ALG,
-    false,
-    ['encrypt', 'decrypt'],
-  );
+  return crypto.subtle.deriveKey({ name: 'ECDH', public: theirPub }, myEcdhPriv, AES_ALG, false, [
+    'encrypt',
+    'decrypt',
+  ]);
 }
 
 /** Encrypt plaintext for a recipient and sign with the sender's ECDSA key. */

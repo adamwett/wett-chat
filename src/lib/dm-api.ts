@@ -5,7 +5,7 @@
 
 export interface RemotePubKeys {
   ecdsaPub: string; // JSON-serialized ECDSA public key JWK
-  ecdhPub: string;  // JSON-serialized ECDH public key JWK
+  ecdhPub: string; // JSON-serialized ECDH public key JWK
 }
 
 /** A message as stored in a mailbox — includes direction and conversation partner. */
@@ -16,23 +16,38 @@ export interface MailboxMessage {
   /** The actual sender's identity hash (always set). */
   from: string;
   ciphertext: string; // base64
-  iv: string;         // base64
-  sig: string;        // base64 ECDSA signature
+  iv: string; // base64
+  sig: string; // base64 ECDSA signature
   timestamp: number;
 }
 
 export type DmServerEvent =
   | { type: 'keys'; ecdsaPub: string | null; ecdhPub: string | null }
-  | { type: 'dm'; direction: 'in' | 'out'; peer: string; from: string; ciphertext: string; iv: string; sig: string; timestamp: number };
+  | {
+      type: 'dm';
+      direction: 'in' | 'out';
+      peer: string;
+      from: string;
+      ciphertext: string;
+      iv: string;
+      sig: string;
+      timestamp: number;
+    };
 
 // ─── Base URL helpers ─────────────────────────────────────────────────────────
 
 function httpBase(wsUrl: string): string {
-  return wsUrl.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://').replace(/\/$/, '');
+  return wsUrl
+    .replace(/^ws:\/\//, 'http://')
+    .replace(/^wss:\/\//, 'https://')
+    .replace(/\/$/, '');
 }
 
 function wsBase(wsUrl: string): string {
-  return wsUrl.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://').replace(/\/$/, '');
+  return wsUrl
+    .replace(/^http:\/\//, 'ws://')
+    .replace(/^https:\/\//, 'wss://')
+    .replace(/\/$/, '');
 }
 
 const DEFAULT_URL = (import.meta.env.VITE_CHAT_WS_URL as string | undefined) ?? 'ws://localhost:8787';
@@ -56,10 +71,7 @@ export async function registerMailbox(
 }
 
 /** Fetch a peer's public keys via HTTP GET to their mailbox. */
-export async function fetchPubKeys(
-  identityHash: string,
-  serverUrl = DEFAULT_URL,
-): Promise<RemotePubKeys | null> {
+export async function fetchPubKeys(identityHash: string, serverUrl = DEFAULT_URL): Promise<RemotePubKeys | null> {
   try {
     const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/pubkey`);
     if (!res.ok) return null;
@@ -85,10 +97,7 @@ export async function fetchRegistry(serverUrl = DEFAULT_URL): Promise<RegistryEn
 }
 
 /** Fetch all messages (sent and received) from the caller's own mailbox. */
-export async function fetchMailboxMessages(
-  identityHash: string,
-  serverUrl = DEFAULT_URL,
-): Promise<MailboxMessage[]> {
+export async function fetchMailboxMessages(identityHash: string, serverUrl = DEFAULT_URL): Promise<MailboxMessage[]> {
   try {
     const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/messages`);
     if (!res.ok) return [];

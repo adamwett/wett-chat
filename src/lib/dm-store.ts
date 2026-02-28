@@ -6,13 +6,20 @@
 
 import { createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { decryptDm, encryptDm, verifyDm, type Identity } from './crypto';
-import { connectMailbox, fetchMailboxMessages, fetchPubKeys, sendDm, type MailboxMessage, type RemotePubKeys } from './dm-api';
+import { decryptDm, encryptDm, type Identity, verifyDm } from './crypto';
+import {
+  connectMailbox,
+  fetchMailboxMessages,
+  fetchPubKeys,
+  type MailboxMessage,
+  type RemotePubKeys,
+  sendDm,
+} from './dm-api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ConvMessage {
-  text: string | null;     // null = decryption failed
+  text: string | null; // null = decryption failed
   timestamp: number;
   mine: boolean;
   verified: boolean | null; // null = in-flight, only set for received messages
@@ -97,7 +104,7 @@ export function createDmStore(identity: Identity): DmStore {
 
     try {
       // ECDH(ourPriv, theirPub) == ECDH(theirPriv, ourPub) so decryption works both ways
-      text = await decryptDm(ciphertext, iv, peerKeys!.ecdhPub, identity);
+      text = await decryptDm(ciphertext, iv, peerKeys?.ecdhPub, identity);
     } catch {
       text = null;
     }
@@ -107,10 +114,15 @@ export function createDmStore(identity: Identity): DmStore {
     }
 
     const ci = convIndex(peer);
-    setConvs(ci, 'messages', msgIdx, produce((m) => {
-      m.text = text;
-      m.verified = verified;
-    }));
+    setConvs(
+      ci,
+      'messages',
+      msgIdx,
+      produce((m) => {
+        m.text = text;
+        m.verified = verified;
+      }),
+    );
   }
 
   // ── Public methods ───────────────────────────────────────────────────────────

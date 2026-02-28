@@ -88,7 +88,10 @@ export default function DmPanel(props: Props) {
           <button
             type='button'
             class='text-slate-400 hover:text-slate-600 text-lg leading-none cursor-pointer'
-            onClick={() => { setSelected(null); setSendError(''); }}
+            onClick={() => {
+              setSelected(null);
+              setSendError('');
+            }}
           >
             ←
           </button>
@@ -139,9 +142,7 @@ export default function DmPanel(props: Props) {
                       >
                         <div class='text-xs font-mono text-slate-600 truncate'>{abbrev(conv.peerHash)}</div>
                         <div class='text-xs text-slate-400 truncate mt-0.5'>
-                          {last()
-                            ? last()!.text ?? '(encrypted)'
-                            : 'No messages yet'}
+                          {last() ? (last()?.text ?? '(encrypted)') : 'No messages yet'}
                         </div>
                       </button>
                     );
@@ -195,9 +196,7 @@ export default function DmPanel(props: Props) {
                 <div class={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
                   <div
                     class={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${
-                      msg.mine
-                        ? 'bg-indigo-500 text-white'
-                        : 'bg-slate-100 text-slate-800'
+                      msg.mine ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-800'
                     }`}
                   >
                     {msg.text !== null ? (
@@ -206,10 +205,7 @@ export default function DmPanel(props: Props) {
                       <span class='italic opacity-60'>failed to decrypt</span>
                     )}
                     <Show when={!msg.mine && msg.verified !== null}>
-                      <span
-                        class='ml-1 opacity-60'
-                        title={msg.verified ? 'Signature verified' : 'Signature invalid!'}
-                      >
+                      <span class='ml-1 opacity-60' title={msg.verified ? 'Signature verified' : 'Signature invalid!'}>
                         {msg.verified ? '✓' : '⚠'}
                       </span>
                     </Show>
@@ -227,7 +223,12 @@ export default function DmPanel(props: Props) {
                 placeholder='Type a message…'
                 value={input()}
                 onInput={(e) => setInput(e.currentTarget.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
                 disabled={sending() || !selectedConv()?.peerPubKeys}
               />
               <button
