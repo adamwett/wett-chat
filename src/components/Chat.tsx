@@ -122,7 +122,7 @@ export default function Chat(props: Props) {
   }
 
   return (
-    <div class='flex h-screen'>
+    <div class='flex h-dvh'>
       {/* Chat column */}
       <div class='flex flex-col flex-1 min-w-0 max-w-2xl mx-auto p-3 sm:p-4'>
         {/* Header */}

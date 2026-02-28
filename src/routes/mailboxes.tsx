@@ -72,7 +72,7 @@ export default function Mailboxes() {
   return (
     <>
       <Title>Mailboxes – Wett Chat</Title>
-      <div class='min-h-screen bg-slate-50 p-4 sm:p-8'>
+      <div class='min-h-dvh bg-slate-50 p-4 sm:p-8'>
         <div class='max-w-2xl mx-auto'>
           <h1 class='text-2xl font-semibold text-slate-800 mb-1'>Mailboxes</h1>
           <p class='text-sm text-slate-400 mb-6'>All identities that have registered with the server.</p>

@@ -104,7 +104,7 @@ export default function Home() {
       <Show
         when={active()}
         fallback={
-          <div class='flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-6 px-4'>
+          <div class='flex flex-col items-center justify-center min-h-dvh bg-slate-50 gap-6 px-4'>
             <div class='bg-white rounded-xl border border-slate-200 shadow-sm p-8 w-full max-w-sm flex flex-col gap-6'>
               {/* ── Registration ── */}
               <div>
