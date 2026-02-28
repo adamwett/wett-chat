@@ -104,6 +104,7 @@ export function createDmStore(identity: Identity): DmStore {
 
     try {
       // ECDH(ourPriv, theirPub) == ECDH(theirPriv, ourPub) so decryption works both ways
+      if (!peerKeys?.ecdhPub) throw new Error('Peer not registered');
       text = await decryptDm(ciphertext, iv, peerKeys?.ecdhPub, identity);
     } catch {
       text = null;

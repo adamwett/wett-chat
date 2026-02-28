@@ -91,7 +91,7 @@ export default function Mailboxes() {
 
           <Show when={(entries()?.length ?? 0) > 0}>
             <div class='flex flex-col gap-2'>
-              <For each={entries()!}>{(entry) => <MailboxCard entry={entry} />}</For>
+              <For each={entries() ?? []}>{(entry) => <MailboxCard entry={entry} />}</For>
             </div>
             <p class='text-xs text-slate-400 mt-4 text-right'>
               {entries()?.length} mailbox{entries()?.length === 1 ? '' : 'es'}

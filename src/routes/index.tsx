@@ -197,7 +197,7 @@ export default function Home() {
                         </div>
                         <button
                           type='button'
-                          onClick={() => joinWith(entry.room, registeredAs()!)}
+                          onClick={() => joinWith(entry.room, registeredAs() ?? '')}
                           class='ml-3 shrink-0 px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-medium rounded-md hover:bg-indigo-100 transition-colors cursor-pointer'
                         >
                           Join

@@ -97,7 +97,7 @@ export default function DmPanel(props: Props) {
           </button>
         </Show>
         <span class='font-semibold text-slate-800 text-sm flex-1 truncate'>
-          {selected() ? `DM · ${abbrev(selected()!)}` : 'Direct messages'}
+          {selected() ? `DM · ${abbrev(selected() ?? '')}` : 'Direct messages'}
         </span>
         <button
           type='button'
@@ -111,13 +111,14 @@ export default function DmPanel(props: Props) {
       {/* My identity hash */}
       <div class='px-3 py-1.5 bg-slate-50 border-b border-slate-100 shrink-0'>
         <span class='text-xs text-slate-400'>Your ID: </span>
-        <span
+        <button
+          type='button'
           class='text-xs font-mono text-slate-500 cursor-pointer hover:text-indigo-500 transition-colors'
           title='Click to copy'
           onClick={() => navigator.clipboard.writeText(props.dm.identityHash)}
         >
           {abbrev(props.dm.identityHash)}
-        </span>
+        </button>
       </div>
 
       {/* Body */}

@@ -108,14 +108,16 @@ export default function Chat(props: Props) {
   function SigBadge(bprops: { sig: string }) {
     const isMe = bprops.sig === props.identity.identityHash;
     return (
-      <span
+      <button
+        type='button'
         title={isMe ? `You (${bprops.sig})` : `Click to DM · ${bprops.sig}`}
         class={`inline-block font-mono text-xs text-white rounded px-1 py-px ml-1 align-middle ${isMe ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
         style={{ background: sigColor(bprops.sig) }}
         onClick={() => !isMe && openDm(bprops.sig)}
+        disabled={isMe}
       >
         {sigLabel(bprops.sig)}
-      </span>
+      </button>
     );
   }
 
