@@ -167,7 +167,7 @@ export default function Home() {
                   <button
                     type='button'
                     onClick={() => joinWith('global', registeredAs() ?? '')}
-                    class='py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors cursor-pointer'
+                    class='p-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors cursor-pointer'
                   >
                     Join #global
                   </button>
