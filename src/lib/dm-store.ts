@@ -7,7 +7,7 @@
 import { createSignal } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { decryptDm, encryptDm, verifyDm, type Identity } from './crypto';
-import { connectMailbox, deliverDm, fetchMailboxMessages, fetchPubKeys, type DmEnvelope, type RemotePubKeys } from './dm-api';
+import { connectMailbox, fetchMailboxMessages, fetchPubKeys, sendDm, type MailboxMessage, type RemotePubKeys } from './dm-api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,7 +15,7 @@ export interface ConvMessage {
   text: string | null;     // null = decryption failed
   timestamp: number;
   mine: boolean;
-  verified: boolean | null; // null = in-flight
+  verified: boolean | null; // null = in-flight, only set for received messages
 }
 
 export interface Conversation {
@@ -35,8 +35,6 @@ export interface DmStore {
   setUnread: (v: boolean) => void;
   /** Ensure a conversation exists and lazily fetch the peer's public keys. */
   openConv: (peerHash: string) => Promise<void>;
-  /** Process an incoming DM envelope (decrypt, verify, append to conversation). */
-  receiveEnvelope: (env: DmEnvelope) => Promise<void>;
   /** Encrypt and send a message to `peerHash`. Returns an error string, or null on success. */
   send: (peerHash: string, text: string) => Promise<string | null>;
   /**
@@ -64,73 +62,72 @@ export function createDmStore(identity: Identity): DmStore {
     }
   }
 
-  // ── Public methods ───────────────────────────────────────────────────────────
-
-  async function openConv(peerHash: string): Promise<void> {
-    ensureConv(peerHash);
+  async function getPeerKeys(peerHash: string): Promise<RemotePubKeys | null> {
     const idx = convIndex(peerHash);
-    if (idx !== -1 && convs[idx].peerPubKeys === undefined) {
-      const keys = await fetchPubKeys(peerHash);
-      setConvs(convIndex(peerHash), 'peerPubKeys', keys ?? null);
-    }
+    const cached = idx !== -1 ? convs[idx].peerPubKeys : undefined;
+    if (cached !== undefined) return cached;
+
+    const keys = await fetchPubKeys(peerHash);
+    const i = convIndex(peerHash);
+    if (i !== -1) setConvs(i, 'peerPubKeys', keys ?? null);
+    return keys;
   }
 
-  async function receiveEnvelope(env: DmEnvelope): Promise<void> {
-    ensureConv(env.from);
+  // ── Message processing ───────────────────────────────────────────────────────
 
-    let peerKeys = convs[convIndex(env.from)]?.peerPubKeys;
-    if (!peerKeys) {
-      peerKeys = await fetchPubKeys(env.from);
-      const idx = convIndex(env.from);
-      if (idx !== -1) setConvs(idx, 'peerPubKeys', peerKeys);
-    }
+  /**
+   * Process a mailbox message (sent or received) into the conversations store.
+   * Decrypts using the peer's ECDH key (ECDH is symmetric, works for both directions).
+   */
+  async function processMessage(msg: MailboxMessage): Promise<void> {
+    const { peer, direction, from, ciphertext, iv, sig, timestamp } = msg;
+    const isMine = direction === 'out';
 
-    const msgIdx = convs[convIndex(env.from)].messages.length;
-    setConvs(
-      convIndex(env.from),
-      'messages',
-      (msgs) => [...msgs, { text: null, timestamp: env.timestamp, mine: false, verified: null }],
-    );
+    ensureConv(peer);
+    const peerKeys = await getPeerKeys(peer);
+
+    const msgIdx = convs[convIndex(peer)].messages.length;
+    setConvs(convIndex(peer), 'messages', (msgs) => [
+      ...msgs,
+      { text: null, timestamp, mine: isMine, verified: isMine ? true : null },
+    ]);
 
     let text: string | null = null;
-    let verified: boolean | null = null;
+    let verified: boolean | null = isMine ? true : null;
 
     try {
-      text = await decryptDm(env.ciphertext, env.iv, peerKeys!.ecdhPub, identity);
+      // ECDH(ourPriv, theirPub) == ECDH(theirPriv, ourPub) so decryption works both ways
+      text = await decryptDm(ciphertext, iv, peerKeys!.ecdhPub, identity);
     } catch {
       text = null;
     }
 
-    if (peerKeys) {
-      verified = await verifyDm(
-        env.from,
-        identity.identityHash,
-        env.ciphertext,
-        env.iv,
-        env.sig,
-        peerKeys.ecdsaPub,
-      );
+    if (!isMine && peerKeys) {
+      verified = await verifyDm(from, identity.identityHash, ciphertext, iv, sig, peerKeys.ecdsaPub);
     }
 
-    const ci = convIndex(env.from);
+    const ci = convIndex(peer);
     setConvs(ci, 'messages', msgIdx, produce((m) => {
       m.text = text;
       m.verified = verified;
     }));
   }
 
+  // ── Public methods ───────────────────────────────────────────────────────────
+
+  async function openConv(peerHash: string): Promise<void> {
+    ensureConv(peerHash);
+    await getPeerKeys(peerHash);
+  }
+
   async function send(peerHash: string, text: string): Promise<string | null> {
-    const ci = convIndex(peerHash);
-    let peerKeys = ci !== -1 ? convs[ci].peerPubKeys : null;
-    if (!peerKeys) {
-      peerKeys = await fetchPubKeys(peerHash);
-      if (ci !== -1) setConvs(ci, 'peerPubKeys', peerKeys);
-    }
+    const peerKeys = await getPeerKeys(peerHash);
     if (!peerKeys) return 'Peer not registered — they need to open the app first.';
 
     const encrypted = await encryptDm(text, peerHash, peerKeys.ecdhPub, identity);
-    await deliverDm(peerHash, { from: identity.identityHash, ...encrypted });
+    await sendDm(identity.identityHash, peerHash, encrypted);
 
+    // Add locally for instant feedback (server also stores it for history)
     ensureConv(peerHash);
     setConvs(convIndex(peerHash), 'messages', (msgs) => [
       ...msgs,
@@ -140,22 +137,28 @@ export function createDmStore(identity: Identity): DmStore {
   }
 
   function connect(): () => void {
-    // Fetch stored messages via HTTP so history is available immediately and
-    // doesn't depend on the WS handshake timing.
+    // Fetch stored messages via HTTP — deterministic, no race with WS timing
     fetchMailboxMessages(identity.identityHash).then(async (messages) => {
-      for (const env of messages) await receiveEnvelope(env);
+      for (const msg of messages) await processMessage(msg);
     });
 
-    // WS handles only live incoming DMs after history is loaded.
+    // WS handles only live incoming DMs going forward
     const ws = connectMailbox(identity.identityHash, async (event) => {
       if (event.type === 'dm') {
-        await receiveEnvelope(event);
-        setUnread(true);
+        await processMessage({
+          direction: event.direction,
+          peer: event.peer,
+          from: event.from,
+          ciphertext: event.ciphertext,
+          iv: event.iv,
+          sig: event.sig,
+          timestamp: event.timestamp,
+        });
+        if (event.direction === 'in') setUnread(true);
       }
-      // 'history' and 'keys' events are intentionally ignored — HTTP handles history.
     });
     return () => ws.close();
   }
 
-  return { identityHash: identity.identityHash, convs, unread, setUnread, openConv, receiveEnvelope, send, connect };
+  return { identityHash: identity.identityHash, convs, unread, setUnread, openConv, send, connect };
 }
