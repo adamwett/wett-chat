@@ -2,8 +2,22 @@ import { Title } from '@solidjs/meta';
 import { createSignal, Show } from 'solid-js';
 import Chat from '~/components/Chat';
 
+/** Read the persisted secret from localStorage, or generate + store a new one. */
+function getOrCreateSecret(): string {
+  const existing = localStorage.getItem('chat_secret');
+  if (existing) return existing;
+
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const secret = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  localStorage.setItem('chat_secret', secret);
+  return secret;
+}
+
 export default function Home() {
-  const [joined, setJoined] = createSignal<{ room: string; username: string } | null>(null);
+  const [joined, setJoined] = createSignal<{ room: string; username: string; secret: string } | null>(null);
   let usernameRef: HTMLInputElement | undefined;
   let roomRef: HTMLInputElement | undefined;
 
@@ -11,7 +25,7 @@ export default function Home() {
     e.preventDefault();
     const username = usernameRef?.value.trim().slice(0, 32);
     const room = roomRef?.value.trim().slice(0, 64);
-    if (username && room) setJoined({ username, room });
+    if (username && room) setJoined({ username, room, secret: getOrCreateSecret() });
   };
 
   return (
@@ -58,7 +72,7 @@ export default function Home() {
           </div>
         }
       >
-        {(info) => <Chat room={info().room} username={info().username} />}
+        {(info) => <Chat room={info().room} username={info().username} secret={info().secret} />}
       </Show>
     </>
   );

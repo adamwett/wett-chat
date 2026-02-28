@@ -1,20 +1,56 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { createSignal, For, onCleanup, onMount } from 'solid-js';
 
-type ServerMessage =
-  | { type: 'join'; user: string; timestamp: number }
-  | { type: 'leave'; user: string; timestamp: number }
-  | { type: 'message'; user: string; text: string; timestamp: number }
+type DisplayMessage =
+  | { type: 'join'; user: string; signature: string; timestamp: number }
+  | { type: 'leave'; user: string; signature: string; timestamp: number }
+  | { type: 'message'; user: string; signature: string; text: string; timestamp: number }
   | { type: 'error'; text: string };
+
+type ServerMessage = DisplayMessage | { type: 'history'; messages: Array<Extract<DisplayMessage, { type: 'message' }>> };
 
 type Status = 'connecting' | 'connected' | 'disconnected';
 
 interface Props {
   room: string;
   username: string;
+  secret: string;
+}
+
+/** Derive a stable hue from the first 3 bytes of the signature hex. */
+function sigColor(sig: string): string {
+  const hue = (parseInt(sig.slice(0, 6), 16) % 360 + 360) % 360;
+  return `hsl(${hue}, 65%, 42%)`;
+}
+
+/** Short display label for a signature — first 8 hex chars. */
+function sigLabel(sig: string): string {
+  return sig.slice(0, 8);
+}
+
+function SigBadge(props: { sig: string }) {
+  return (
+    <span
+      title={`Signature: ${props.sig}`}
+      style={{
+        display: 'inline-block',
+        'font-family': 'monospace',
+        'font-size': '0.7em',
+        background: sigColor(props.sig),
+        color: 'white',
+        'border-radius': '3px',
+        padding: '1px 4px',
+        'margin-left': '4px',
+        'vertical-align': 'middle',
+        cursor: 'default',
+      }}
+    >
+      {sigLabel(props.sig)}
+    </span>
+  );
 }
 
 export default function Chat(props: Props) {
-  const [messages, setMessages] = createSignal<ServerMessage[]>([]);
+  const [messages, setMessages] = createSignal<DisplayMessage[]>([]);
   const [status, setStatus] = createSignal<Status>('connecting');
   const [input, setInput] = createSignal('');
   let ws: WebSocket | null = null;
@@ -26,12 +62,16 @@ export default function Chat(props: Props) {
 
     ws.onopen = () => {
       setStatus('connected');
-      ws?.send(JSON.stringify({ type: 'join', user: props.username }));
+      ws!.send(JSON.stringify({ type: 'join', user: props.username, secret: props.secret }));
     };
 
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data) as ServerMessage;
-      setMessages((prev) => [...prev, msg]);
+      if (msg.type === 'history') {
+        setMessages(msg.messages);
+      } else {
+        setMessages((prev) => [...prev, msg]);
+      }
       setTimeout(() => bottomRef?.scrollIntoView({ behavior: 'smooth' }), 0);
     };
 
@@ -94,25 +134,33 @@ export default function Chat(props: Props) {
         }}
       >
         <For each={messages()}>
-          {(msg) => (
-            <Show
-              when={msg.type === 'message'}
-              fallback={
-                <div style={{ color: '#999', 'font-size': '0.8em', margin: '0.25rem 0', 'font-style': 'italic' }}>
-                  {msg.type === 'join'
-                    ? `${(msg as any).user} joined`
-                    : msg.type === 'leave'
-                      ? `${(msg as any).user} left`
-                      : `error: ${(msg as any).text}`}
+          {(msg) => {
+            if (msg.type === 'message') {
+              return (
+                <div style={{ margin: '0.35rem 0' }}>
+                  <strong>{msg.user}</strong>
+                  <SigBadge sig={msg.signature} />
+                  {': '}
+                  <span>{msg.text}</span>
                 </div>
-              }
-            >
-              <div style={{ margin: '0.35rem 0' }}>
-                <strong>{(msg as any).user}: </strong>
-                <span>{(msg as any).text}</span>
+              );
+            }
+            if (msg.type === 'join' || msg.type === 'leave') {
+              return (
+                <div style={{ color: '#999', 'font-size': '0.8em', margin: '0.25rem 0', 'font-style': 'italic' }}>
+                  {msg.user}
+                  <SigBadge sig={msg.signature} />
+                  {msg.type === 'join' ? ' joined' : ' left'}
+                </div>
+              );
+            }
+            // error
+            return (
+              <div style={{ color: 'red', 'font-size': '0.8em', margin: '0.25rem 0' }}>
+                error: {msg.text}
               </div>
-            </Show>
-          )}
+            );
+          }}
         </For>
         <div ref={bottomRef} />
       </div>
@@ -127,7 +175,7 @@ export default function Chat(props: Props) {
           disabled={status() !== 'connected'}
         />
         <button
-          type='submit'
+          type='button'
           style={{
             padding: '0.5rem 1rem',
             'border-radius': '4px',
