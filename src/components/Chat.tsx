@@ -14,6 +14,7 @@ interface Props {
   room: string;
   username: string;
   secret: string;
+  onDisconnect?: () => void;
 }
 
 /** Derive a stable hue from the first 3 bytes of the signature hex. */
@@ -100,7 +101,17 @@ export default function Chat(props: Props) {
       <div class='flex items-center gap-3 mb-3 pb-3 border-b border-slate-200'>
         <span class='font-semibold text-slate-800 text-lg'>#{props.room}</span>
         <span class={`text-sm font-medium ${statusColors[status()]}`}>● {status()}</span>
-        <span class='ml-auto text-sm text-slate-400'>as {props.username}</span>
+        <span class='text-sm text-slate-400'>as {props.username}</span>
+        <button
+          type='button'
+          class='ml-auto px-3 py-1 text-xs font-medium text-slate-500 border border-slate-200 rounded-md hover:bg-slate-50 hover:text-red-500 hover:border-red-200 transition-colors cursor-pointer'
+          onClick={() => {
+            ws?.close();
+            props.onDisconnect?.();
+          }}
+        >
+          Disconnect
+        </button>
       </div>
 
       {/* Messages */}
