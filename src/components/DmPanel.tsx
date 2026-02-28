@@ -81,7 +81,7 @@ export default function DmPanel(props: Props) {
   const selectedConv = () => props.dm.convs.find((c) => c.peerHash === selected()) ?? null;
 
   return (
-    <div class='flex flex-col h-full bg-white border-l border-slate-200 w-80'>
+    <div class='flex flex-col h-full bg-white border-l border-slate-200 w-full sm:w-80'>
       {/* Panel header */}
       <div class='flex items-center gap-2 px-3 py-2 border-b border-slate-200 shrink-0'>
         <Show when={selected()}>

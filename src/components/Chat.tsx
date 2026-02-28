@@ -124,12 +124,12 @@ export default function Chat(props: Props) {
   return (
     <div class='flex h-screen'>
       {/* Chat column */}
-      <div class='flex flex-col flex-1 min-w-0 max-w-2xl mx-auto p-4'>
+      <div class='flex flex-col flex-1 min-w-0 max-w-2xl mx-auto p-3 sm:p-4'>
         {/* Header */}
-        <div class='flex items-center gap-3 mb-3 pb-3 border-b border-slate-200'>
-          <span class='font-semibold text-slate-800 text-lg'>#{props.room}</span>
-          <span class={`text-sm font-medium ${statusColors[status()]}`}>● {status()}</span>
-          <span class='text-sm text-slate-400'>as {props.username}</span>
+        <div class='flex items-center gap-2 sm:gap-3 mb-3 pb-3 border-b border-slate-200'>
+          <span class='font-semibold text-slate-800 text-base sm:text-lg truncate max-w-[8rem] sm:max-w-none'>#{props.room}</span>
+          <span class={`text-sm font-medium shrink-0 ${statusColors[status()]}`}>● {status()}</span>
+          <span class='hidden sm:inline text-sm text-slate-400'>as {props.username}</span>
           <button
             type='button'
             class={`relative px-3 py-1 text-xs font-medium border rounded-md transition-colors cursor-pointer ${
@@ -211,7 +211,9 @@ export default function Chat(props: Props) {
 
       {/* DM Panel */}
       <Show when={dmOpen()}>
-        <DmPanel dm={dm} openPeer={dmPeer()} onClose={() => setDmOpen(false)} />
+        <div class='fixed inset-0 z-20 flex sm:relative sm:inset-auto sm:z-auto'>
+          <DmPanel dm={dm} openPeer={dmPeer()} onClose={() => setDmOpen(false)} />
+        </div>
       </Show>
     </div>
   );
