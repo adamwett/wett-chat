@@ -71,7 +71,7 @@ export default function Mailboxes() {
 
   return (
     <>
-      <Title>Mailboxes – Delayed Chat</Title>
+      <Title>Mailboxes – Wett Chat</Title>
       <div class='min-h-screen bg-slate-50 p-8'>
         <div class='max-w-2xl mx-auto'>
           <h1 class='text-2xl font-semibold text-slate-800 mb-1'>Mailboxes</h1>

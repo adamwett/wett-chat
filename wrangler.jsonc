@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "example-basic",
+  "name": "chat",
   "compatibility_date": "2026-02-26",
   "observability": {
     "enabled": true

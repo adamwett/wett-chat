@@ -9,7 +9,7 @@ export default function App() {
     <Router
       root={(props) => (
         <MetaProvider>
-          <Title>Delayed Chat</Title>
+          <Title>Wett Chat</Title>
           <Suspense>{props.children}</Suspense>
         </MetaProvider>
       )}

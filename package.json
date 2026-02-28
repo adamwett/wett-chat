@@ -1,13 +1,13 @@
 {
-  "name": "example-basic",
+  "name": "chat",
   "type": "module",
   "scripts": {
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start",
     "version": "vinxi version",
-    "deploy": "npm run build && wrangler deploy",
-    "preview": "npm run build && wrangler dev",
+    "deploy": "pnpm --filter chat-do run deploy && pnpm build && wrangler deploy",
+    "preview": "pnpm build && wrangler dev",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

@@ -100,7 +100,7 @@ export default function Home() {
 
   return (
     <>
-      <Title>Delayed Chat</Title>
+      <Title>Wett Chat</Title>
       <Show
         when={active()}
         fallback={
@@ -164,6 +164,13 @@ export default function Home() {
               <Show when={registeredAs()}>
                 <div class='border-t border-slate-100 pt-6'>
                   <h2 class='text-xl font-semibold text-slate-800 mb-4'>Join a room</h2>
+                  <button
+                    type='button'
+                    onClick={() => joinWith('global', registeredAs() ?? '')}
+                    class='py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors cursor-pointer'
+                  >
+                    Join #global
+                  </button>
                   <form onSubmit={join} class='flex flex-col gap-3'>
                     <input
                       ref={roomRef}

@@ -7,7 +7,7 @@ dist
 app.config.timestamp_*.js
 
 # Environment
-.env
+!.env
 .env*.local
 
 # dependencies
