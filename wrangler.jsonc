@@ -5,12 +5,42 @@
   "observability": {
     "enabled": true
   },
-  "main": "./.output/server/index.mjs",
+  "main": "./src/worker.ts",
   "assets": {
     "binding": "ASSETS",
     "directory": "./.output/public"
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ChatRoom"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["DmMailbox"]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["Registry"]
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "ChatRoom",
+        "name": "CHATROOM"
+      },
+      {
+        "class_name": "DmMailbox",
+        "name": "DMMAILBOX"
+      },
+      {
+        "class_name": "Registry",
+        "name": "REGISTRY"
+      }
+    ]
+  }
 }

@@ -6,7 +6,7 @@
     "build": "vinxi build",
     "start": "vinxi start",
     "version": "vinxi version",
-    "deploy": "pnpm --filter chat-do run deploy && pnpm build && wrangler deploy",
+    "deploy": "pnpm build && wrangler deploy",
     "preview": "pnpm build && wrangler dev",
     "cf-typegen": "wrangler types"
   },
