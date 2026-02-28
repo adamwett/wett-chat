@@ -21,6 +21,8 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "tailwindcss": "^4.1.18",
     "wrangler": "^4.69.0"
   }
 }

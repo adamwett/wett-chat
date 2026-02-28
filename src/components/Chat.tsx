@@ -31,23 +31,19 @@ function SigBadge(props: { sig: string }) {
   return (
     <span
       title={`Signature: ${props.sig}`}
-      style={{
-        display: 'inline-block',
-        'font-family': 'monospace',
-        'font-size': '0.7em',
-        background: sigColor(props.sig),
-        color: 'white',
-        'border-radius': '3px',
-        padding: '1px 4px',
-        'margin-left': '4px',
-        'vertical-align': 'middle',
-        cursor: 'default',
-      }}
+      class='inline-block font-mono text-xs text-white rounded px-1 py-px ml-1 align-middle cursor-default'
+      style={{ background: sigColor(props.sig) }}
     >
       {sigLabel(props.sig)}
     </span>
   );
 }
+
+const statusColors: Record<Status, string> = {
+  connected: 'text-emerald-500',
+  connecting: 'text-amber-500',
+  disconnected: 'text-red-500',
+};
 
 export default function Chat(props: Props) {
   const [messages, setMessages] = createSignal<DisplayMessage[]>([]);
@@ -99,75 +95,47 @@ export default function Chat(props: Props) {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        'flex-direction': 'column',
-        height: '100vh',
-        'max-width': '640px',
-        margin: '0 auto',
-        padding: '1rem',
-        'box-sizing': 'border-box',
-      }}
-    >
-      <div style={{ 'margin-bottom': '0.5rem' }}>
-        <strong>#{props.room}</strong>{' '}
-        <span
-          style={{
-            color: status() === 'connected' ? 'green' : status() === 'connecting' ? 'orange' : 'red',
-            'font-size': '0.85em',
-          }}
-        >
-          ● {status()}
-        </span>
-        <span style={{ 'margin-left': '1rem', color: '#666', 'font-size': '0.85em' }}>as {props.username}</span>
+    <div class='flex flex-col h-screen max-w-2xl mx-auto p-4'>
+      {/* Header */}
+      <div class='flex items-center gap-3 mb-3 pb-3 border-b border-slate-200'>
+        <span class='font-semibold text-slate-800 text-lg'>#{props.room}</span>
+        <span class={`text-sm font-medium ${statusColors[status()]}`}>● {status()}</span>
+        <span class='ml-auto text-sm text-slate-400'>as {props.username}</span>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          border: '1px solid #ccc',
-          'border-radius': '4px',
-          padding: '0.75rem',
-          background: '#fafafa',
-        }}
-      >
+      {/* Messages */}
+      <div class='flex-1 overflow-y-auto rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1'>
         <For each={messages()}>
           {(msg) => {
             if (msg.type === 'message') {
               return (
-                <div style={{ margin: '0.35rem 0' }}>
-                  <strong>{msg.user}</strong>
+                <div class='text-sm'>
+                  <span class='font-semibold text-slate-700'>{msg.user}</span>
                   <SigBadge sig={msg.signature} />
-                  {': '}
-                  <span>{msg.text}</span>
+                  <span class='text-slate-400'>{': '}</span>
+                  <span class='text-slate-800'>{msg.text}</span>
                 </div>
               );
             }
             if (msg.type === 'join' || msg.type === 'leave') {
               return (
-                <div style={{ color: '#999', 'font-size': '0.8em', margin: '0.25rem 0', 'font-style': 'italic' }}>
+                <div class='text-xs text-slate-400 italic'>
                   {msg.user}
                   <SigBadge sig={msg.signature} />
                   {msg.type === 'join' ? ' joined' : ' left'}
                 </div>
               );
             }
-            // error
-            return (
-              <div style={{ color: 'red', 'font-size': '0.8em', margin: '0.25rem 0' }}>
-                error: {msg.text}
-              </div>
-            );
+            return <div class='text-xs text-red-500'>error: {msg.text}</div>;
           }}
         </For>
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', 'margin-top': '0.5rem' }}>
+      {/* Input */}
+      <div class='flex gap-2 mt-3'>
         <input
-          style={{ flex: 1, padding: '0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'font-size': '1rem' }}
+          class='flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50'
           placeholder='Type a message…'
           value={input()}
           onInput={(e) => setInput(e.currentTarget.value)}
@@ -176,14 +144,7 @@ export default function Chat(props: Props) {
         />
         <button
           type='button'
-          style={{
-            padding: '0.5rem 1rem',
-            'border-radius': '4px',
-            border: 'none',
-            background: '#6366f1',
-            color: 'white',
-            cursor: 'pointer',
-          }}
+          class='px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           onClick={send}
           disabled={status() !== 'connected'}
         >

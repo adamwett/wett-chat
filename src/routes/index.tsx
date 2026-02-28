@@ -34,41 +34,32 @@ export default function Home() {
       <Show
         when={joined()}
         fallback={
-          <div style={{ display: 'flex', 'align-items': 'center', 'justify-content': 'center', height: '100vh' }}>
-            <form
-              onSubmit={join}
-              style={{ display: 'flex', 'flex-direction': 'column', gap: '0.75rem', 'min-width': '280px' }}
-            >
-              <h2 style={{ margin: 0 }}>Join a room</h2>
-              <input
-                ref={usernameRef}
-                placeholder='Username'
-                required
-                maxLength={32}
-                style={{ padding: '0.5rem', 'font-size': '1rem', 'border-radius': '4px', border: '1px solid #ccc' }}
-              />
-              <input
-                ref={roomRef}
-                placeholder='Room name'
-                required
-                maxLength={64}
-                style={{ padding: '0.5rem', 'font-size': '1rem', 'border-radius': '4px', border: '1px solid #ccc' }}
-              />
-              <button
-                type='submit'
-                style={{
-                  padding: '0.5rem',
-                  'font-size': '1rem',
-                  background: '#6366f1',
-                  color: 'white',
-                  border: 'none',
-                  'border-radius': '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Join
-              </button>
-            </form>
+          <div class='flex items-center justify-center min-h-screen bg-slate-50'>
+            <div class='bg-white rounded-xl border border-slate-200 shadow-sm p-8 w-full max-w-sm'>
+              <h2 class='text-xl font-semibold text-slate-800 mb-6'>Join a room</h2>
+              <form onSubmit={join} class='flex flex-col gap-3'>
+                <input
+                  ref={usernameRef}
+                  placeholder='Username'
+                  required
+                  maxLength={32}
+                  class='px-3 py-2 rounded-lg border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400'
+                />
+                <input
+                  ref={roomRef}
+                  placeholder='Room name'
+                  required
+                  maxLength={64}
+                  class='px-3 py-2 rounded-lg border border-slate-200 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400'
+                />
+                <button
+                  type='submit'
+                  class='mt-1 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors cursor-pointer'
+                >
+                  Join
+                </button>
+              </form>
+            </div>
           </div>
         }
       >
