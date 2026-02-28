@@ -1,5 +1,6 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import type { Identity } from '~/lib/crypto';
+import { createDmStore } from '~/lib/dm-store';
 import DmPanel from './DmPanel';
 
 type DisplayMessage =
@@ -42,8 +43,13 @@ export default function Chat(props: Props) {
   const [input, setInput] = createSignal('');
   const [dmOpen, setDmOpen] = createSignal(false);
   const [dmPeer, setDmPeer] = createSignal<string | undefined>(undefined);
+  const dm = createDmStore(props.identity);
   let ws: WebSocket | null = null;
   let bottomRef: HTMLDivElement | undefined;
+
+  onMount(() => {
+    onCleanup(dm.connect());
+  });
 
   onMount(() => {
     const base = (import.meta.env.VITE_CHAT_WS_URL ?? 'ws://localhost:8787').replace(/\/$/, '');
@@ -94,6 +100,7 @@ export default function Chat(props: Props) {
     if (sig === props.identity.identityHash) return;
     setDmPeer(sig);
     setDmOpen(true);
+    dm.setUnread(false);
   };
 
   function SigBadge(bprops: { sig: string }) {
@@ -121,14 +128,17 @@ export default function Chat(props: Props) {
           <span class='text-sm text-slate-400'>as {props.username}</span>
           <button
             type='button'
-            class={`px-3 py-1 text-xs font-medium border rounded-md transition-colors cursor-pointer ${
+            class={`relative px-3 py-1 text-xs font-medium border rounded-md transition-colors cursor-pointer ${
               dmOpen()
                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
                 : 'text-slate-500 border-slate-200 hover:bg-slate-50'
             }`}
-            onClick={() => setDmOpen((v) => !v)}
+            onClick={() => { setDmOpen((v) => !v); dm.setUnread(false); }}
           >
             DMs
+            <Show when={dm.unread()}>
+              <span class='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full' />
+            </Show>
           </button>
           <button
             type='button'
@@ -195,7 +205,7 @@ export default function Chat(props: Props) {
       {/* DM Panel */}
       <Show when={dmOpen()}>
         <DmPanel
-          identity={props.identity}
+          dm={dm}
           openPeer={dmPeer()}
           onClose={() => setDmOpen(false)}
         />

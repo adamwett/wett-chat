@@ -80,6 +80,20 @@ export async function fetchRegistry(serverUrl = DEFAULT_URL): Promise<RegistryEn
   return res.json() as Promise<RegistryEntry[]>;
 }
 
+/** Fetch all messages stored in the caller's own mailbox. */
+export async function fetchMailboxMessages(
+  identityHash: string,
+  serverUrl = DEFAULT_URL,
+): Promise<DmEnvelope[]> {
+  try {
+    const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/messages`);
+    if (!res.ok) return [];
+    return res.json() as Promise<DmEnvelope[]>;
+  } catch {
+    return [];
+  }
+}
+
 /** Deliver an encrypted DM blob to a recipient's mailbox. */
 export async function deliverDm(
   recipientHash: string,

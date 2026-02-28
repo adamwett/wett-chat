@@ -1,30 +1,5 @@
-import { createEffect, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
-import { createStore, produce } from 'solid-js/store';
-import { decryptDm, encryptDm, verifyDm, type Identity } from '~/lib/crypto';
-import { connectMailbox, deliverDm, fetchPubKeys, type DmEnvelope, type RemotePubKeys } from '~/lib/dm-api';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ConvMessage {
-  text: string | null;     // null = decryption failed
-  timestamp: number;
-  mine: boolean;
-  verified: boolean | null; // null = in-flight, true/false = done
-}
-
-interface Conversation {
-  peerHash: string;
-  /** undefined = not yet fetched, null = confirmed not registered, RemotePubKeys = ready */
-  peerPubKeys: RemotePubKeys | null | undefined;
-  messages: ConvMessage[];
-}
-
-interface Props {
-  identity: Identity;
-  /** When this changes, the panel opens/switches to that peer's conversation. */
-  openPeer?: string;
-  onClose?: () => void;
-}
+import { createEffect, createSignal, For, Show } from 'solid-js';
+import type { DmStore } from '~/lib/dm-store';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,29 +7,23 @@ function abbrev(hash: string): string {
   return `${hash.slice(0, 8)}…${hash.slice(-4)}`;
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  dm: DmStore;
+  /** When set, the panel opens/switches to that peer's conversation. */
+  openPeer?: string;
+  onClose?: () => void;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DmPanel(props: Props) {
-  const [convs, setConvs] = createStore<Conversation[]>([]);
   const [selected, setSelected] = createSignal<string | null>(null);
   const [input, setInput] = createSignal('');
   const [newTarget, setNewTarget] = createSignal('');
   const [sending, setSending] = createSignal(false);
   const [sendError, setSendError] = createSignal('');
-
-  // ── Mailbox WebSocket ────────────────────────────────────────────────────────
-
-  onMount(async () => {
-    const ws = connectMailbox(props.identity.identityHash, async (event) => {
-      if (event.type === 'history') {
-        for (const env of event.messages) await receiveEnvelope(env);
-      } else if (event.type === 'dm') {
-        await receiveEnvelope(event);
-      }
-    });
-
-    onCleanup(() => ws.close());
-  });
 
   // ── React to openPeer prop ───────────────────────────────────────────────────
 
@@ -63,75 +32,11 @@ export default function DmPanel(props: Props) {
     if (peer) openConv(peer);
   });
 
-  // ── Conversation helpers ─────────────────────────────────────────────────────
-
-  function convIndex(peerHash: string): number {
-    return convs.findIndex((c) => c.peerHash === peerHash);
-  }
-
-  function ensureConv(peerHash: string): void {
-    if (convIndex(peerHash) === -1) {
-      setConvs((prev) => [...prev, { peerHash, peerPubKeys: undefined, messages: [] }]);
-    }
-  }
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
   async function openConv(peerHash: string): Promise<void> {
-    ensureConv(peerHash);
     setSelected(peerHash);
-
-    // Lazily fetch peer public keys if not yet attempted
-    const idx = convIndex(peerHash);
-    if (idx !== -1 && convs[idx].peerPubKeys === undefined) {
-      const keys = await fetchPubKeys(peerHash);
-      setConvs(convIndex(peerHash), 'peerPubKeys', keys ?? null);
-    }
-  }
-
-  async function receiveEnvelope(env: DmEnvelope): Promise<void> {
-    ensureConv(env.from);
-
-    // Fetch sender's public keys if we don't have them yet
-    let peerKeys = convs[convIndex(env.from)]?.peerPubKeys;
-    if (!peerKeys) {
-      peerKeys = await fetchPubKeys(env.from);
-      const idx = convIndex(env.from);
-      if (idx !== -1) setConvs(idx, 'peerPubKeys', peerKeys);
-    }
-
-    // Optimistically add the message as pending
-    const msgIdx = convs[convIndex(env.from)].messages.length;
-    setConvs(
-      convIndex(env.from),
-      'messages',
-      (msgs) => [...msgs, { text: null, timestamp: env.timestamp, mine: false, verified: null }],
-    );
-
-    // Decrypt and verify concurrently
-    let text: string | null = null;
-    let verified: boolean | null = null;
-
-    try {
-      text = await decryptDm(env.ciphertext, env.iv, peerKeys!.ecdhPub, props.identity);
-    } catch {
-      text = null;
-    }
-
-    if (peerKeys) {
-      verified = await verifyDm(
-        env.from,
-        props.identity.identityHash,
-        env.ciphertext,
-        env.iv,
-        env.sig,
-        peerKeys.ecdsaPub,
-      );
-    }
-
-    const ci = convIndex(env.from);
-    setConvs(ci, 'messages', msgIdx, produce((m) => {
-      m.text = text;
-      m.verified = verified;
-    }));
+    await props.dm.openConv(peerHash);
   }
 
   // ── Send ─────────────────────────────────────────────────────────────────────
@@ -143,29 +48,13 @@ export default function DmPanel(props: Props) {
 
     setSendError('');
     setSending(true);
-
     try {
-      const ci = convIndex(peer);
-      let peerKeys = ci !== -1 ? convs[ci].peerPubKeys : null;
-      if (!peerKeys) {
-        peerKeys = await fetchPubKeys(peer);
-        if (ci !== -1) setConvs(ci, 'peerPubKeys', peerKeys);
+      const err = await props.dm.send(peer, text);
+      if (err) {
+        setSendError(err);
+      } else {
+        setInput('');
       }
-      if (!peerKeys) {
-        setSendError('Peer not registered — they need to connect to the chat first.');
-        return;
-      }
-
-      const encrypted = await encryptDm(text, peer, peerKeys.ecdhPub, props.identity);
-      await deliverDm(peer, { from: props.identity.identityHash, ...encrypted });
-
-      // Add sent message locally (no roundtrip needed)
-      ensureConv(peer);
-      setConvs(convIndex(peer), 'messages', (msgs) => [
-        ...msgs,
-        { text, timestamp: Date.now(), mine: true, verified: true },
-      ]);
-      setInput('');
     } catch (err) {
       setSendError(String(err));
     } finally {
@@ -189,7 +78,7 @@ export default function DmPanel(props: Props) {
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
-  const selectedConv = () => convs.find((c) => c.peerHash === selected()) ?? null;
+  const selectedConv = () => props.dm.convs.find((c) => c.peerHash === selected()) ?? null;
 
   return (
     <div class='flex flex-col h-full bg-white border-l border-slate-200 w-80'>
@@ -222,9 +111,9 @@ export default function DmPanel(props: Props) {
         <span
           class='text-xs font-mono text-slate-500 cursor-pointer hover:text-indigo-500 transition-colors'
           title='Click to copy'
-          onClick={() => navigator.clipboard.writeText(props.identity.identityHash)}
+          onClick={() => navigator.clipboard.writeText(props.dm.identityHash)}
         >
-          {abbrev(props.identity.identityHash)}
+          {abbrev(props.dm.identityHash)}
         </span>
       </div>
 
@@ -236,10 +125,10 @@ export default function DmPanel(props: Props) {
           <div class='flex flex-col flex-1 overflow-hidden'>
             <div class='flex-1 overflow-y-auto'>
               <Show
-                when={convs.length > 0}
+                when={props.dm.convs.length > 0}
                 fallback={<p class='text-xs text-slate-400 text-center mt-8 px-4'>No conversations yet.</p>}
               >
-                <For each={convs}>
+                <For each={props.dm.convs}>
                   {(conv) => {
                     const last = () => conv.messages.at(-1);
                     return (
