@@ -1,8 +1,8 @@
-import { defineConfig } from "@solidjs/start/config";
+import { defineConfig } from '@solidjs/start/config';
 
 export default defineConfig({
   server: {
-    preset: "cloudflare_module",
-    compatibilityDate: "2026-02-26"
-  }
+    preset: 'cloudflare_module',
+    compatibilityDate: '2026-02-26',
+  },
 });
