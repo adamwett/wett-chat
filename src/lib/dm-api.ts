@@ -3,6 +3,8 @@
  * All payloads are opaque to the server — no crypto here.
  */
 
+import { CHAT_HTTP_URL, CHAT_WS_URL } from './env';
+
 export interface RemotePubKeys {
   ecdsaPub: string; // JSON-serialized ECDSA public key JWK
   ecdhPub: string; // JSON-serialized ECDH public key JWK
@@ -34,24 +36,6 @@ export type DmServerEvent =
       timestamp: number;
     };
 
-// ─── Base URL helpers ─────────────────────────────────────────────────────────
-
-function httpBase(wsUrl: string): string {
-  return wsUrl
-    .replace(/^ws:\/\//, 'http://')
-    .replace(/^wss:\/\//, 'https://')
-    .replace(/\/$/, '');
-}
-
-function wsBase(wsUrl: string): string {
-  return wsUrl
-    .replace(/^http:\/\//, 'ws://')
-    .replace(/^https:\/\//, 'wss://')
-    .replace(/\/$/, '');
-}
-
-const DEFAULT_URL = (import.meta.env.VITE_CHAT_WS_URL as string | undefined) ?? 'ws://localhost:8787';
-
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 /** Register the caller's public keys and username with their mailbox DO. Throws on network error. */
@@ -60,9 +44,8 @@ export async function registerMailbox(
   ecdsaPub: string,
   ecdhPub: string,
   username: string,
-  serverUrl = DEFAULT_URL,
 ): Promise<void> {
-  const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/register`, {
+  const res = await fetch(`${CHAT_HTTP_URL}/dm/${identityHash}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ecdsaPub, ecdhPub, username }),
@@ -71,9 +54,9 @@ export async function registerMailbox(
 }
 
 /** Fetch a peer's public keys via HTTP GET to their mailbox. */
-export async function fetchPubKeys(identityHash: string, serverUrl = DEFAULT_URL): Promise<RemotePubKeys | null> {
+export async function fetchPubKeys(identityHash: string): Promise<RemotePubKeys | null> {
   try {
-    const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/pubkey`);
+    const res = await fetch(`${CHAT_HTTP_URL}/dm/${identityHash}/pubkey`);
     if (!res.ok) return null;
     return res.json() as Promise<RemotePubKeys>;
   } catch {
@@ -90,16 +73,16 @@ export interface RegistryEntry {
 }
 
 /** Fetch all registered identity hashes from the global registry. */
-export async function fetchRegistry(serverUrl = DEFAULT_URL): Promise<RegistryEntry[]> {
-  const res = await fetch(`${httpBase(serverUrl)}/registry`);
+export async function fetchRegistry(): Promise<RegistryEntry[]> {
+  const res = await fetch(`${CHAT_HTTP_URL}/registry`);
   if (!res.ok) return [];
   return res.json() as Promise<RegistryEntry[]>;
 }
 
 /** Fetch all messages (sent and received) from the caller's own mailbox. */
-export async function fetchMailboxMessages(identityHash: string, serverUrl = DEFAULT_URL): Promise<MailboxMessage[]> {
+export async function fetchMailboxMessages(identityHash: string): Promise<MailboxMessage[]> {
   try {
-    const res = await fetch(`${httpBase(serverUrl)}/dm/${identityHash}/messages`);
+    const res = await fetch(`${CHAT_HTTP_URL}/dm/${identityHash}/messages`);
     if (!res.ok) return [];
     return res.json() as Promise<MailboxMessage[]>;
   } catch {
@@ -115,9 +98,8 @@ export async function sendDm(
   myHash: string,
   recipientHash: string,
   payload: { ciphertext: string; iv: string; sig: string },
-  serverUrl = DEFAULT_URL,
 ): Promise<void> {
-  await fetch(`${httpBase(serverUrl)}/dm/${myHash}/send`, {
+  await fetch(`${CHAT_HTTP_URL}/dm/${myHash}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ to: recipientHash, from: myHash, ...payload }),
@@ -125,12 +107,8 @@ export async function sendDm(
 }
 
 /** Open a WebSocket to the caller's mailbox to receive live inbound DMs. */
-export function connectMailbox(
-  identityHash: string,
-  onEvent: (event: DmServerEvent) => void,
-  serverUrl = DEFAULT_URL,
-): WebSocket {
-  const ws = new WebSocket(`${wsBase(serverUrl)}/dm/${identityHash}/ws`);
+export function connectMailbox(identityHash: string, onEvent: (event: DmServerEvent) => void): WebSocket {
+  const ws = new WebSocket(`${CHAT_WS_URL}/dm/${identityHash}/ws`);
   ws.onmessage = (e) => {
     try {
       onEvent(JSON.parse(e.data as string) as DmServerEvent);

@@ -1,6 +1,7 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import type { Identity } from '~/lib/crypto';
 import { createDmStore } from '~/lib/dm-store';
+import { CHAT_WS_URL } from '~/lib/env';
 import DmPanel from './DmPanel';
 
 type DisplayMessage =
@@ -54,8 +55,7 @@ export default function Chat(props: Props) {
   });
 
   onMount(() => {
-    const base = (import.meta.env.VITE_CHAT_WS_URL ?? 'ws://localhost:8787').replace(/\/$/, '');
-    ws = new WebSocket(`${base}/ws/${encodeURIComponent(props.room)}`);
+    ws = new WebSocket(`${CHAT_WS_URL}/ws/${encodeURIComponent(props.room)}`);
 
     ws.onopen = () => {
       setStatus('connected');
