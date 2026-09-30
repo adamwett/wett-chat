@@ -1,32 +1,18 @@
-# SolidStart
+# wett-chat
 
-Everything you need to build a Solid project, powered by [`solid-start`](https://start.solidjs.com);
+Real-time chat with end-to-end encrypted DMs. Live at **https://chat.wett.dev/**
 
-## Creating a project
+- Public chat room over WebSockets
+- E2E encrypted DMs: ECDH P-256 + AES-256-GCM, ECDSA-signed; keys never leave the browser
+- Built with SolidStart + Tailwind on Cloudflare Workers and Durable Objects (`ChatRoom`, `DmMailbox`, `Registry`)
 
-```bash
-# create a new project in the current directory
-npm init solid@latest
-
-# create a new project in my-app
-npm init solid@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Develop
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+pnpm dev       # local dev server
+pnpm preview   # build + run in wrangler dev
+pnpm deploy    # build + deploy to Cloudflare
 ```
 
-## Building
-
-Solid apps are built with _presets_, which optimise your project for deployment to different environments.
-
-By default, `npm run build` will generate a Node app that you can run with `npm start`. To use a different preset, add it to the `devDependencies` in `package.json` and specify in your `app.config.js`.
-
-## This project was created with the [Solid CLI](https://github.com/solidjs-community/solid-cli)
+Run `pnpm cf-typegen` after changing bindings in `wrangler.jsonc`.
